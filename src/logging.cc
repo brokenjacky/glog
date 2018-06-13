@@ -1159,7 +1159,8 @@ LogMessage::LogMessageData::LogMessageData()
 }
 
 void LogMessage::LogMessageData::reset() {
-    stream_.reset();
+    //stream_.reset();
+    stream_.clear();
 }
 
 LogMessage::LogMessage(const char* file, int line, LogSeverity severity,

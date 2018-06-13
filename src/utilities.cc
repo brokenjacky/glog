@@ -49,6 +49,7 @@
 #endif
 
 #include "base/googleinit.h"
+#include "symbolize.h"
 
 using std::string;
 
@@ -88,7 +89,7 @@ void DebugWriteToString(const char* data, void *arg) {
   reinterpret_cast<string*>(arg)->append(data);
 }
 
-#ifdef HAVE_SYMBOLIZE
+#ifndef HAVE_SYMBOLIZE
 // Print a program counter and its symbol name.
 static void DumpPCAndSymbol(DebugWriter *writerfn, void *arg, void *pc,
                             const char * const prefix) {
@@ -97,7 +98,7 @@ static void DumpPCAndSymbol(DebugWriter *writerfn, void *arg, void *pc,
   // Symbolizes the previous address of pc because pc may be in the
   // next function.  The overrun happens when the function ends with
   // a call to a function annotated noreturn (e.g. CHECK).
-  if (Symbolize(reinterpret_cast<char *>(pc) - 1, tmp, sizeof(tmp))) {
+  if (Symbolize((reinterpret_cast<char *>(pc) - 1), tmp, sizeof(tmp))) {
       symbol = tmp;
   }
   char buf[1024];
@@ -121,15 +122,15 @@ static void DumpStackTrace(int skip_count, DebugWriter *writerfn, void *arg) {
   void* stack[32];
   int depth = GetStackTrace(stack, ARRAYSIZE(stack), skip_count+1);
   for (int i = 0; i < depth; i++) {
-#if defined(HAVE_SYMBOLIZE)
-    if (FLAGS_symbolize_stacktrace) {
-      DumpPCAndSymbol(writerfn, arg, stack[i], "    ");
-    } else {
-      DumpPC(writerfn, arg, stack[i], "    ");
-    }
-#else
-    DumpPC(writerfn, arg, stack[i], "    ");
-#endif
+// #if defined(HAVE_SYMBOLIZE)
+//     if (FLAGS_symbolize_stacktrace) {
+//       DumpPCAndSymbol(writerfn, arg, stack[i], "    ");
+//     } else {
+//       DumpPC(writerfn, arg, stack[i], "    ");
+//     }
+// #else
+//     DumpPC(writerfn, arg, stack[i], "    ");
+// #endif
   }
 }
 
@@ -137,19 +138,19 @@ static void DumpStackTraceAndExit() {
   DumpStackTrace(1, DebugWriteToStderr, NULL);
 
   // TOOD(hamaji): Use signal instead of sigaction?
-  if (IsFailureSignalHandlerInstalled()) {
-    // Set the default signal handler for SIGABRT, to avoid invoking our
-    // own signal handler installed by InstallFailureSignalHandler().
-#ifdef HAVE_SIGACTION
-    struct sigaction sig_action;
-    memset(&sig_action, 0, sizeof(sig_action));
-    sigemptyset(&sig_action.sa_mask);
-    sig_action.sa_handler = SIG_DFL;
-    sigaction(SIGABRT, &sig_action, NULL);
-#elif defined(OS_WINDOWS)
-    signal(SIGABRT, SIG_DFL);
-#endif  // HAVE_SIGACTION
-  }
+//   if (IsFailureSignalHandlerInstalled()) {
+//     // Set the default signal handler for SIGABRT, to avoid invoking our
+//     // own signal handler installed by InstallFailureSignalHandler().
+// #ifdef HAVE_SIGACTION
+//     struct sigaction sig_action;
+//     memset(&sig_action, 0, sizeof(sig_action));
+//     sigemptyset(&sig_action.sa_mask);
+//     sig_action.sa_handler = SIG_DFL;
+//     sigaction(SIGABRT, &sig_action, NULL);
+// #elif defined(OS_WINDOWS)
+//     signal(SIGABRT, SIG_DFL);
+// #endif  // HAVE_SIGACTION
+//   }
 
   abort();
 }
